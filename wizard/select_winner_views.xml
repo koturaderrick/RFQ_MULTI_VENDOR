@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Define a form view for the RFQ Select Winner Wizard -->
+    <record id="view_rfq_select_winner_wizard_form" model="ir.ui.view">
+        <field name="name">rfq.select.winner.wizard.form</field>
+        <field name="model">rfq.select.winner.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Select Winning Bid">
+                <sheet>
+                    <group>
+                        <!-- Display the RFQ ID as read-only -->
+                        <field name="rfq_id" readonly="1"/>
+                    </group>
+
+                    <!-- Read-only table to compare all submitted bids -->
+                    <field name="bid_ids" readonly="1">
+                        <list string="Submitted Bids"
+                              decoration-success="state == 'won'">
+                            <!-- Display bid name -->
+                            <field name="name"/>
+                            <!-- Display vendor associated with the bid -->
+                            <field name="vendor_id"/>
+                            <!-- Display bid amount -->
+                            <field name="bid_amount"/>
+                            <!-- Display currency (optional) -->
+                            <field name="currency_id" optional="show"/>
+                            <!-- Display delivery days (optional) -->
+                            <field name="delivery_days" optional="show"/>
+                            <!-- Display bid validity date (optional) -->
+                            <field name="validity_date" optional="show"/>
+                            <!-- Display additional notes (optional) -->
+                            <field name="notes" optional="show"/>
+                            <!-- Display bid state with badges and decorations -->
+                            <field name="state" widget="badge"
+                                   decoration-warning="state == 'submitted'"
+                                   decoration-success="state == 'won'"/>
+                        </list>
+                    </field>
+
+                    <!-- Section to select the winning bid -->
+                    <group string="Select the Winner">
+                        <!-- Dropdown to pick the winning bid, no creation allowed -->
+                        <field name="winning_bid_id"
+                               placeholder="Pick the winning bid..."
+                               options="{'no_create': True}"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <!-- Button to confirm the winner and create a purchase order -->
+                    <button name="action_confirm_winner"
+                            string="Confirm Winner &amp; Create PO"
+                            type="object"
+                            class="btn-primary"/>
+                    <!-- Button to cancel and close the wizard -->
+                    <button string="Cancel"
+                            class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rfq_bid_user,rfq.bid user,model_rfq_bid,purchase.group_purchase_user,1,1,1,0
+access_rfq_bid_manager,rfq.bid manager,model_rfq_bid,purchase.group_purchase_manager,1,1,1,1
+access_purchase_request_employee,purchase.request employee,model_purchase_request,base.group_user,1,1,1,0
+access_purchase_request_user,purchase.request user,model_purchase_request,purchase.group_purchase_user,1,1,1,1
+access_purchase_request_manager,purchase.request manager,model_purchase_request,purchase.group_purchase_manager,1,1,1,1
+access_purchase_request_line_employee,purchase.request.line employee,model_purchase_request_line,base.group_user,1,1,1,0
+access_purchase_request_line_user,purchase.request.line user,model_purchase_request_line,purchase.group_purchase_user,1,1,1,1
+access_purchase_request_line_manager,purchase.request.line manager,model_purchase_request_line,purchase.group_purchase_manager,1,1,1,1
+access_rfq_select_winner_wizard,rfq.select.winner.wizard,model_rfq_select_winner_wizard,purchase.group_purchase_manager,1,1,1,1

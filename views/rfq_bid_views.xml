@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- List view for RFQ Bids -->
+    <record id="view_rfq_bid_list" model="ir.ui.view">
+        <field name="name">rfq.bid.list</field>
+        <field name="model">rfq.bid</field>
+        <field name="arch" type="xml">
+            <list string="RFQ Bids"
+                  decoration-success="state == 'won'"  <!-- Highlight rows in green if bid is won -->
+                  decoration-muted="state == 'lost'">  <!-- Highlight rows in grey if bid is lost -->
+                <!-- Display vendor name -->
+                <field name="name"/>
+                <!-- Reference to the RFQ -->
+                <field name="rfq_id"/>
+                <!-- Vendor associated with the bid -->
+                <field name="vendor_id"/>
+                <!-- Bid amount -->
+                <field name="bid_amount"/>
+                <!-- Currency of the bid -->
+                <field name="currency_id" optional="show"/>
+                <!-- Delivery days for the bid -->
+                <field name="delivery_days" optional="show"/>
+                <!-- Validity date of the bid -->
+                <field name="validity_date" optional="show"/>
+                <!-- Indicates if the bid is the winner -->
+                <field name="is_winner"/>
+                <!-- State of the bid with badges and decorations -->
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"  <!-- Blue badge for draft state -->
+                       decoration-warning="state == 'submitted'"  <!-- Yellow badge for submitted state -->
+                       decoration-success="state == 'won'"  <!-- Green badge for won state -->
+                       decoration-danger="state == 'lost'"/>  <!-- Red badge for lost state -->
+            </list>
+        </field>
+    </record>
+
+    <!-- Form view for RFQ Bids -->
+    <record id="view_rfq_bid_form" model="ir.ui.view">
+        <field name="name">rfq.bid.form</field>
+        <field name="model">rfq.bid</field>
+        <field name="arch" type="xml">
+            <form string="RFQ Bid">
+                <header>
+                    <!-- Button to reset bid to draft, visible only if state is submitted -->
+                    <button name="action_set_draft"
+                            string="Reset to Draft"
+                            type="object"
+                            invisible="state != 'submitted'"/>
+                    <!-- Status bar showing draft, submitted, and won states -->
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,won"/>
+                </header>
+                <sheet>
+                    <!-- Ribbon to indicate the bid is a winner -->
+                    <widget name="web_ribbon" title="WINNER" bg_color="bg-success"
+                            invisible="not is_winner"/>
+                    <div class="oe_title">
+                        <!-- Display the vendor name as the title -->
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <!-- Reference to the RFQ -->
+                            <field name="rfq_id"/>
+                            <!-- Vendor associated with the bid -->
+                            <field name="vendor_id"/>
+                            <!-- Bid amount -->
+                            <field name="bid_amount"/>
+                            <!-- Currency of the bid -->
+                            <field name="currency_id"/>
+                        </group>
+                        <group>
+                            <!-- Delivery days for the bid -->
+                            <field name="delivery_days"/>
+                            <!-- Validity date of the bid -->
+                            <field name="validity_date"/>
+                            <!-- Purchase order reference, readonly and hidden if not set -->
+                            <field name="purchase_order_id"
+                                   readonly="1"
+                                   invisible="not purchase_order_id"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <!-- Notes field for additional information -->
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                </sheet>
+                <!-- Chatter for communication and logging -->
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open RFQ Bids -->
+    <record id="action_rfq_bid" model="ir.actions.act_window">
+        <field name="name">RFQ Bids</field>
+        <field name="res_model">rfq.bid</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu item for RFQ Bids under Purchase -->
+    <menuitem id="menu_rfq_bid"
+              name="RFQ Bids"
+              parent="purchase.menu_purchase_root"
+              action="action_rfq_bid"
+              groups="purchase.group_purchase_user"
+              sequence="30"/>
+
+</odoo>
