@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError # type: ignore
 
 # This is the main model for Purchase Requests
 class PurchaseRequest(models.Model):

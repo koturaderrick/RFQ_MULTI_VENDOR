@@ -5,7 +5,7 @@ from odoo.exceptions import UserError
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
 
-    # Multiple vendors on one RFQ
+    # Allow assigning multiple vendors to a single RFQ
     vendor_ids = fields.Many2many(
         'res.partner',
         'purchase_order_vendor_rel',
@@ -15,40 +15,44 @@ class PurchaseOrder(models.Model):
         domain=[('is_company', '=', True)],  # Only companies can be vendors
     )
 
+    # Keep track of all bids related to this RFQ
     bid_ids = fields.One2many(
         'rfq.bid',
         'rfq_id',
-        string='Bids',  # List of bids related to this RFQ
+        string='Bids',
     )
 
+    # Automatically calculate the total number of bids
     bid_count = fields.Integer(
         compute='_compute_bid_count',
-        string='Bid Count',  # Total number of bids
+        string='Bid Count',
     )
 
+    # Store the winning bid for this RFQ
     winning_bid_id = fields.Many2one(
         'rfq.bid',
-        string='Winning Bid',  # The selected winning bid
+        string='Winning Bid',
         readonly=True,
         copy=False,
     )
 
+    # Link this RFQ to a specific purchase request
     purchase_request_id = fields.Many2one(
         'purchase.request',
-        string='Purchase Request',  # Link to the purchase request
+        string='Purchase Request',
         readonly=True,
         copy=False,
     )
 
     @api.depends('bid_ids')
     def _compute_bid_count(self):
-        # Compute the number of bids for each RFQ
+        # Count the number of bids for each RFQ
         for order in self:
             order.bid_count = len(order.bid_ids)
 
     @api.onchange('vendor_ids')
     def _onchange_vendor_ids(self):
-        # Automatically set the first vendor as the main partner
+        # When vendors are updated, set the first vendor as the main partner
         if self.vendor_ids:
             self.partner_id = self.vendor_ids[0]
         else:
@@ -56,7 +60,7 @@ class PurchaseOrder(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        # Ensure the first vendor is set as the main partner during creation
+        # During creation, make sure the first vendor is set as the main partner
         for vals in vals_list:
             if vals.get('vendor_ids') and not vals.get('partner_id'):
                 for cmd in vals['vendor_ids']:
@@ -69,7 +73,7 @@ class PurchaseOrder(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        # Ensure the first vendor is set as the main partner during updates
+        # When updating, ensure the first vendor is set as the main partner
         if vals.get('vendor_ids') and not vals.get('partner_id'):
             for cmd in vals['vendor_ids']:
                 if cmd[0] == 6 and cmd[2]:  # Many2many commands
@@ -81,7 +85,7 @@ class PurchaseOrder(models.Model):
         return super().write(vals)
 
     def action_view_bids(self):
-        # Open a view to see all bids related to this RFQ
+        # Open a window to view all bids related to this RFQ
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
@@ -93,7 +97,7 @@ class PurchaseOrder(models.Model):
         }
 
     def action_rfq_send(self):
-        # Send the RFQ to vendors or use the default method if no vendors are assigned
+        # Send the RFQ to vendors, or use the default method if no vendors are assigned
         self.ensure_one()
         if not self.vendor_ids:
             return super().action_rfq_send()
@@ -113,7 +117,7 @@ class PurchaseOrder(models.Model):
         if not self.bid_ids:
             raise UserError(_('No bids have been received for this RFQ yet.'))
 
-        # 1. Validation: All bids must have an amount greater than 0
+        # Step 1: Make sure all bids have a valid amount
         missing_amounts = self.bid_ids.filtered(lambda b: b.bid_amount <= 0.0)
         if missing_amounts:
             vendor_names = ", ".join(missing_amounts.mapped('vendor_id.name'))
@@ -122,7 +126,7 @@ class PurchaseOrder(models.Model):
                 "selecting a winner. Missing amounts for: %s"
             ) % vendor_names)
 
-        # 2. Validation: All bids must be in 'Submitted' state
+        # Step 2: Ensure all bids are in the 'Submitted' state
         not_submitted = self.bid_ids.filtered(lambda b: b.state != 'submitted')
         if not_submitted:
             vendor_names = ", ".join(not_submitted.mapped('vendor_id.name'))
