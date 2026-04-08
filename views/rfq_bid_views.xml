@@ -1,36 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
     <!-- List view for RFQ Bids -->
     <record id="view_rfq_bid_list" model="ir.ui.view">
         <field name="name">rfq.bid.list</field>
         <field name="model">rfq.bid</field>
         <field name="arch" type="xml">
             <list string="RFQ Bids"
-                  decoration-success="state == 'won'"  <!-- Highlight rows in green if bid is won -->
-                  decoration-muted="state == 'lost'">  <!-- Highlight rows in grey if bid is lost -->
-                <!-- Display vendor name -->
-                <field name="name"/>
-                <!-- Reference to the RFQ -->
-                <field name="rfq_id"/>
-                <!-- Vendor associated with the bid -->
-                <field name="vendor_id"/>
-                <!-- Bid amount -->
-                <field name="bid_amount"/>
-                <!-- Currency of the bid -->
-                <field name="currency_id" optional="show"/>
-                <!-- Delivery days for the bid -->
-                <field name="delivery_days" optional="show"/>
-                <!-- Validity date of the bid -->
-                <field name="validity_date" optional="show"/>
-                <!-- Indicates if the bid is the winner -->
-                <field name="is_winner"/>
-                <!-- State of the bid with badges and decorations -->
+                  decoration-success="state == 'won'"  <!-- Highlight rows in green if the bid is won -->
+                  decoration-muted="state == 'lost'"> <!-- Dim rows if the bid is lost -->
+                <!-- Display fields in the list view -->
+                <field name="name"/> <!-- Vendor name -->
+                <field name="rfq_id"/> <!-- Reference to the RFQ -->
+                <field name="vendor_id"/> <!-- Vendor ID -->
+                <field name="bid_amount"/> <!-- Bid amount -->
+                <field name="currency_id" optional="show"/> <!-- Currency -->
+                <field name="delivery_days" optional="show"/> <!-- Delivery days -->
+                <field name="validity_date" optional="show"/> <!-- Validity date -->
+                <field name="is_winner"/> <!-- Indicates if the bid is the winner -->
                 <field name="state" widget="badge"
-                       decoration-info="state == 'draft'"  <!-- Blue badge for draft state -->
-                       decoration-warning="state == 'submitted'"  <!-- Yellow badge for submitted state -->
-                       decoration-success="state == 'won'"  <!-- Green badge for won state -->
-                       decoration-danger="state == 'lost'"/>  <!-- Red badge for lost state -->
+                       decoration-info="state == 'draft'" <!-- Blue badge for draft state -->
+                       decoration-warning="state == 'submitted'" <!-- Yellow badge for submitted state -->
+                       decoration-success="state == 'won'" <!-- Green badge for won state -->
+                       decoration-danger="state == 'lost'"/> <!-- Red badge for lost state -->
             </list>
         </field>
     </record>
@@ -42,12 +33,12 @@
         <field name="arch" type="xml">
             <form string="RFQ Bid">
                 <header>
-                    <!-- Button to reset bid to draft, visible only if state is submitted -->
+                    <!-- Button to reset the bid to draft, only visible when the state is 'submitted' -->
                     <button name="action_set_draft"
                             string="Reset to Draft"
                             type="object"
                             invisible="state != 'submitted'"/>
-                    <!-- Status bar showing draft, submitted, and won states -->
+                    <!-- Status bar to show the state of the bid -->
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,won"/>
                 </header>
@@ -56,33 +47,27 @@
                     <widget name="web_ribbon" title="WINNER" bg_color="bg-success"
                             invisible="not is_winner"/>
                     <div class="oe_title">
-                        <!-- Display the vendor name as the title -->
+                        <!-- Display vendor name as the title -->
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
                         <group>
-                            <!-- Reference to the RFQ -->
-                            <field name="rfq_id"/>
-                            <!-- Vendor associated with the bid -->
-                            <field name="vendor_id"/>
-                            <!-- Bid amount -->
-                            <field name="bid_amount"/>
-                            <!-- Currency of the bid -->
-                            <field name="currency_id"/>
+                            <field name="rfq_id"/> <!-- Reference to the RFQ -->
+                            <field name="vendor_id"/> <!-- Vendor ID -->
+                            <field name="bid_amount"/> <!-- Bid amount -->
+                            <field name="currency_id"/> <!-- Currency -->
                         </group>
                         <group>
-                            <!-- Delivery days for the bid -->
-                            <field name="delivery_days"/>
-                            <!-- Validity date of the bid -->
-                            <field name="validity_date"/>
-                            <!-- Purchase order reference, readonly and hidden if not set -->
+                            <field name="delivery_days"/> <!-- Delivery days -->
+                            <field name="validity_date"/> <!-- Validity date -->
+                            <!-- Purchase order reference, only visible if it exists -->
                             <field name="purchase_order_id"
                                    readonly="1"
                                    invisible="not purchase_order_id"/>
                         </group>
                     </group>
                     <group string="Notes">
-                        <!-- Notes field for additional information -->
+                        <!-- Notes field without a label -->
                         <field name="notes" nolabel="1"/>
                     </group>
                 </sheet>
@@ -92,19 +77,18 @@
         </field>
     </record>
 
-    <!-- Action to open RFQ Bids -->
+    <!-- Action to open the RFQ Bids -->
     <record id="action_rfq_bid" model="ir.actions.act_window">
         <field name="name">RFQ Bids</field>
         <field name="res_model">rfq.bid</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,form"/> <!-- Opens in list and form views -->
     </record>
 
-    <!-- Menu item for RFQ Bids under Purchase -->
+    <!-- Menu item for RFQ Bids -->
     <menuitem id="menu_rfq_bid"
               name="RFQ Bids"
-              parent="purchase.menu_purchase_root"
-              action="action_rfq_bid"
-              groups="purchase.group_purchase_user"
-              sequence="30"/>
-
+              parent="purchase.menu_purchase_root" <!-- Parent menu -->
+              action="action_rfq_bid" <!-- Action to open -->
+              groups="purchase.group_purchase_user" <!-- Visible to purchase users -->
+              sequence="30"/> <!-- Position in the menu -->
 </odoo>

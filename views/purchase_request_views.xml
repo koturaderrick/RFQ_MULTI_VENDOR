@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Form view for purchase requests -->
+    <!-- Form View for Purchase Request -->
     <record id="view_purchase_request_form" model="ir.ui.view">
         <field name="name">purchase.request.form</field>
         <field name="model">purchase.request</field>
@@ -12,18 +12,17 @@
                     <button name="action_submit" string="Submit to Procurement"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"/>
-                            
-                    <!-- Button to approve the request (only for managers) -->
+                    <!-- Button to approve the request (visible to managers only) -->
                     <button name="action_approve" string="Approve"
                             type="object" class="btn-success"
                             groups="purchase.group_purchase_manager"
                             invisible="state != 'submitted'"/>
-                    <!-- Button to reject the request (only for managers) -->
+                    <!-- Button to reject the request (visible to managers only) -->
                     <button name="action_reject" string="Reject"
                             type="object" class="btn-danger"
                             groups="purchase.group_purchase_manager"
                             invisible="state != 'submitted'"/>
-                    <!-- Button to create an RFQ (only for managers) -->
+                    <!-- Button to create an RFQ (visible to managers only) -->
                     <button name="action_create_rfq" string="Create RFQ"
                             type="object" class="btn-primary"
                             groups="purchase.group_purchase_manager"
@@ -32,37 +31,38 @@
                     <button name="action_reset_draft" string="Reset to Draft"
                             type="object"
                             invisible="state not in ('rejected',)"/>
-                    <!-- Status bar to show the state of the request -->
+                    <!-- Status bar to display the current state -->
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved,rfq_created"/>
                 </header>
                 <sheet>
+                    <!-- Button box for quick actions -->
                     <div class="oe_button_box" name="button_box">
-                        <!-- Button to view RFQs related to the request -->
+                        <!-- Button to view RFQs related to this request -->
                         <button name="action_view_rfqs" type="object"
                                 class="oe_stat_button" icon="fa-file-text-o"
                                 invisible="rfq_count == 0">
                             <field name="rfq_count" widget="statinfo" string="RFQs"/>
                         </button>
                     </div>
+                    <!-- Title section -->
                     <div class="oe_title">
-                        <!-- Display the name of the purchase request -->
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
                         <group>
-                            <!-- Fields for requester and dates -->
+                            <!-- Request details -->
                             <field name="requested_by"/>
                             <field name="date_request"/>
                             <field name="date_required"/>
                         </group>
                     </group>
+                    <!-- Justification for the request -->
                     <group string="Justification">
-                        <!-- Field to describe the purpose of the request -->
                         <field name="description" nolabel="1"
                                placeholder="What do you need and why?"/>
                     </group>
-                    <!-- Section to select vendors (visible after submission) -->
+                    <!-- Vendors to invite for RFQ -->
                     <group string="Vendors to Invite"
                            groups="purchase.group_purchase_user"
                            invisible="state == 'draft'">
@@ -74,8 +74,8 @@
                                readonly="state in ('rfq_created', 'rejected')"/>
                     </group>
                     <notebook>
+                        <!-- Tab for requested items -->
                         <page string="Requested Items">
-                            <!-- List of items requested in the purchase request -->
                             <field name="line_ids">
                                 <list editable="bottom">
                                     <field name="product_id"/>
@@ -94,17 +94,15 @@
         </field>
     </record>
 
-    <!-- List view for purchase requests -->
+    <!-- List View for Purchase Requests -->
     <record id="view_purchase_request_list" model="ir.ui.view">
         <field name="name">purchase.request.list</field>
         <field name="model">purchase.request</field>
         <field name="arch" type="xml">
             <list string="Purchase Requests"
                   decoration-info="state == 'draft'"
-
                   decoration-warning="state == 'submitted'"
                   decoration-success="state in ('approved','rfq_created')"
-
                   decoration-danger="state == 'rejected'">
                 <!-- Columns to display in the list view -->
                 <field name="name"/>
@@ -113,7 +111,6 @@
                 <field name="date_required"/>
                 <field name="rfq_count"/>
                 <field name="state" widget="badge"
-
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'submitted'"
                        decoration-success="state in ('approved','rfq_created')"
@@ -137,20 +134,20 @@
         <field name="domain">[('requested_by', '=', uid)]</field>
     </record>
 
-    <!-- Root menu for purchase requests -->
+    <!-- Menu structure -->
     <menuitem id="menu_purchase_request_root"
               name="Purchase Requests"
               parent="purchase.menu_purchase_root"
               sequence="5"/>
 
-    <!-- Submenu for the user's purchase requests -->
+    <!-- Menu for the user's purchase requests -->
     <menuitem id="menu_my_purchase_request"
               name="My Requests"
               parent="menu_purchase_request_root"
               action="action_purchase_request_mine"
               sequence="10"/>
 
-    <!-- Submenu for all purchase requests -->
+    <!-- Menu for all purchase requests -->
     <menuitem id="menu_all_purchase_request"
               name="All Requests"
               parent="menu_purchase_request_root"
