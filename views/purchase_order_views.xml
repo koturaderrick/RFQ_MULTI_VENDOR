@@ -1,76 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Define a new view that inherits the purchase order form -->
     <record id="view_purchase_order_form_inherit_multi_vendor" model="ir.ui.view">
         <field name="name">purchase.order.form.multi.vendor</field>
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
 
-            <!-- Add a smart button to show the total number of bids -->
+            <!-- Hide the state and bid_count fields in the header -->
+            <xpath expr="//header" position="inside">
+                <field name="state" invisible="1"/>
+                <field name="bid_count" invisible="1"/>
+            </xpath>
+
+            <!-- Add a button to view bids in the button box -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_bids" type="object"
                         class="oe_stat_button" icon="fa-gavel"
-                        invisible="bid_count == 0">
+                        invisible="state == 'draft' or bid_count == 0">
                     <field name="bid_count" widget="statinfo" string="Bids"/>
                 </button>
             </xpath>
 
-            <!-- Add a "Select Winning Bid" button next to the "Send RFQ" button -->
+            <!-- Add a button to select the winning bid after the RFQ send button -->
             <xpath expr="//button[@name='action_rfq_send']" position="after">
                 <button name="action_open_select_winner"
                         string="Select Winning Bid"
                         type="object"
                         class="btn-success"
-                        invisible="bid_count == 0"/>
+                        invisible="state == 'draft' or bid_count == 0"/>
             </xpath>
 
-            <!-- Hide the single-vendor fields as we are using vendor_ids instead -->
+            <!-- Modify the partner_id field to make it invisible and not required -->
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
                 <attribute name="required">0</attribute>
             </xpath>
-            <xpath expr="//field[@name='partner_ref']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
 
-            <!-- Add fields for multi-vendor, winning bid, and source request -->
+            <!-- Add new fields after the partner_id field -->
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="vendor_ids"
-                       widget="many2many_tags"
-                       string="Assigned Vendors"
-                       placeholder="Add vendors to this RFQ..."
-                       colspan="2"
-                       options="{'no_quick_create': False, 'no_create_edit': False}"/>
-                <!-- Allow creating new vendors directly from the dropdown -->
-                <field name="winning_bid_id"
-                       readonly="1"
-                       invisible="not winning_bid_id"
-                       string="Winning Bid"/>
-                <field name="purchase_request_id"
-                       readonly="1"
-                       invisible="not purchase_request_id"
-                       string="From Purchase Request"/>
+                <field name="vendor_ids" widget="many2many_tags" string="Assigned Vendors"
+                       readonly="state not in ('draft', 'sent')"/>
+                <field name="winning_bid_id" invisible="not winning_bid_id"/>
+                <field name="purchase_request_id" invisible="not purchase_request_id"/>
             </xpath>
 
-            <!-- Add a "Bids" tab to display all bids submitted for this RFQ -->
+            <!-- Add a new page in the notebook to display bids -->
             <xpath expr="//notebook" position="inside">
-                <page string="Bids" name="bids_page">
-                    <field name="bid_ids" context="{'default_rfq_id': id}">
-                        <list editable="bottom"
-                              decoration-success="state == 'won'"
-                              decoration-muted="state == 'lost'">
-                            <field name="name" readonly="1"/>
+                <page string="Bids" name="bids_page" invisible="state == 'draft'">
+                    <field name="bid_ids">
+                        <list editable="bottom" decoration-success="state == 'won'" decoration-muted="state == 'lost'">
                             <field name="vendor_id"/>
                             <field name="bid_amount"/>
-                            <field name="currency_id" optional="show"/>
-                            <field name="delivery_days" optional="show"/>
-                            <field name="validity_date" optional="show"/>
-                            <field name="notes"/>
+                            <field name="delivery_days"/>
                             <field name="state" widget="badge"
                                    decoration-info="state == 'draft'"
                                    decoration-warning="state == 'submitted'"
-                                   decoration-success="state == 'won'"
-                                   decoration-danger="state == 'lost'"/>
+                                   decoration-success="state == 'won'"/>
                         </list>
                     </field>
                 </page>
