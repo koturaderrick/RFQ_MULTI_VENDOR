@@ -2,104 +2,141 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
 
-class RFQBid(models.Model):
-    _name = 'rfq.bid'
-    _description = 'RFQ Bid'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'bid_amount asc'  # Sort bids by amount in ascending order (cheapest first)
+class PurchaseOrder(models.Model):
+    _inherit = 'purchase.order'
 
-    # Fields for bid reference, RFQ, vendor, and bid details
-    name = fields.Char(
-        string='Bid Reference',
-        required=True,
-        copy=False,
-        default=lambda self: _('New'),
-    )
-    rfq_id = fields.Many2one(
-        'purchase.order',
-        string='RFQ',
-        required=True,
-        ondelete='cascade',  # Delete bid if RFQ is deleted
-    )
-    vendor_id = fields.Many2one(
+    # Multiple vendors on one RFQ
+    vendor_ids = fields.Many2many(
         'res.partner',
-        string='Vendor',
-        required=True,
-        domain=[('supplier_rank', '>', 0)],  # Only allow vendors with supplier rank > 0
+        'purchase_order_vendor_rel',
+        'order_id',
+        'partner_id',
+        string='Assigned Vendors',
+        domain=[('is_company', '=', True)],  # Only companies can be vendors
     )
-    bid_amount = fields.Float(string='Bid Amount', required=True)
-    currency_id = fields.Many2one(
-        'res.currency',
-        string='Currency',
-        default=lambda self: self.env.company.currency_id,  # Default to company currency
+
+    bid_ids = fields.One2many(
+        'rfq.bid',
+        'rfq_id',
+        string='Bids',  # List of bids related to this RFQ
     )
-    delivery_days = fields.Integer(string='Delivery (Days)')
-    validity_date = fields.Date(string='Valid Until')
-    notes = fields.Text(string='Notes')
 
-    # Bid state and tracking
-    state = fields.Selection([
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('won', 'Won'),
-        ('lost', 'Lost'),
-    ], string='Status', default='submitted', tracking=True)  # Default state is 'submitted'
+    bid_count = fields.Integer(
+        compute='_compute_bid_count',
+        string='Bid Count',  # Total number of bids
+    )
 
-    is_winner = fields.Boolean(string='Winner', default=False)  # Flag for winning bid
-    purchase_order_id = fields.Many2one(
-        'purchase.order',
-        string='Generated PO',
+    winning_bid_id = fields.Many2one(
+        'rfq.bid',
+        string='Winning Bid',  # The selected winning bid
         readonly=True,
-        copy=False,  # Do not copy this field
+        copy=False,
     )
+
+    purchase_request_id = fields.Many2one(
+        'purchase.request',
+        string='Purchase Request',  # Link to the purchase request
+        readonly=True,
+        copy=False,
+    )
+
+    @api.depends('bid_ids')
+    def _compute_bid_count(self):
+        # Compute the number of bids for each RFQ
+        for order in self:
+            order.bid_count = len(order.bid_ids)
+
+    @api.onchange('vendor_ids')
+    def _onchange_vendor_ids(self):
+        # Automatically set the first vendor as the main partner
+        if self.vendor_ids:
+            self.partner_id = self.vendor_ids[0]
+        else:
+            self.partner_id = False
 
     @api.model_create_multi
     def create(self, vals_list):
-        # Override create method to set bid reference to vendor name if not provided
+        # Ensure the first vendor is set as the main partner during creation
         for vals in vals_list:
-            if not vals.get('name') or vals.get('name') == _('New'):
-                vendor = self.env['res.partner'].browse(vals.get('vendor_id'))
-                vals['name'] = vendor.name or _('New')
+            if vals.get('vendor_ids') and not vals.get('partner_id'):
+                for cmd in vals['vendor_ids']:
+                    if cmd[0] == 6 and cmd[2]:  # Many2many commands
+                        vals['partner_id'] = cmd[2][0]
+                        break
+                    elif cmd[0] == 4:  # Single record command
+                        vals['partner_id'] = cmd[1]
+                        break
         return super().create(vals_list)
 
-    def action_set_draft(self):
-        # Set bid state back to 'draft'
-        for bid in self:
-            bid.state = 'draft'
+    def write(self, vals):
+        # Ensure the first vendor is set as the main partner during updates
+        if vals.get('vendor_ids') and not vals.get('partner_id'):
+            for cmd in vals['vendor_ids']:
+                if cmd[0] == 6 and cmd[2]:  # Many2many commands
+                    vals['partner_id'] = cmd[2][0]
+                    break
+                elif cmd[0] == 4:  # Single record command
+                    vals['partner_id'] = cmd[1]
+                    break
+        return super().write(vals)
 
-    def action_mark_winner(self):
-        """Mark this bid as the winner, update other bids, and create a purchase order."""
-        for bid in self:
-            if bid.state != 'submitted':
-                raise UserError(_('Only submitted bids can be marked as winner.'))
+    def action_view_bids(self):
+        # Open a view to see all bids related to this RFQ
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Bids'),
+            'res_model': 'rfq.bid',
+            'view_mode': 'list,form',
+            'domain': [('rfq_id', '=', self.id)],
+            'context': {'default_rfq_id': self.id},
+        }
 
-            # Mark this bid as 'won' and set it as the winner
-            bid.state = 'won'
-            bid.is_winner = True
+    def action_rfq_send(self):
+        # Send the RFQ to vendors or use the default method if no vendors are assigned
+        self.ensure_one()
+        if not self.vendor_ids:
+            return super().action_rfq_send()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Send RFQ to Vendors'),
+            'res_model': 'rfq.send.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_rfq_id': self.id},
+        }
 
-            # Set all other bids for the same RFQ as 'lost'
-            other_bids = bid.rfq_id.bid_ids.filtered(lambda b: b.id != bid.id)
-            other_bids.write({'state': 'lost', 'is_winner': False})
+    def action_open_select_winner(self):
+        """Unified method: Check for bid amounts AND submitted status."""
+        self.ensure_one()
 
-            # Create purchase order lines based on RFQ lines
-            po_lines = []
-            for line in bid.rfq_id.order_line:
-                po_lines.append((0, 0, {
-                    'product_id': line.product_id.id,
-                    'name': line.name or line.product_id.name,
-                    'product_qty': line.product_qty,
-                    'price_unit': bid.bid_amount,  # Use bid amount as price
-                    'date_planned': fields.Datetime.now(),
-                    'product_uom_id': line.product_uom_id.id,
-                }))
+        if not self.bid_ids:
+            raise UserError(_('No bids have been received for this RFQ yet.'))
 
-            # Create a new purchase order for the winning bid
-            po = self.env['purchase.order'].create({
-                'partner_id': bid.vendor_id.id,
-                'origin': bid.rfq_id.name,  # Link to the original RFQ
-                'order_line': po_lines,
-            })
+        # 1. Validation: All bids must have an amount greater than 0
+        missing_amounts = self.bid_ids.filtered(lambda b: b.bid_amount <= 0.0)
+        if missing_amounts:
+            vendor_names = ", ".join(missing_amounts.mapped('vendor_id.name'))
+            raise UserError(_(
+                "Incomplete Data: You must enter a bid amount for all vendors before "
+                "selecting a winner. Missing amounts for: %s"
+            ) % vendor_names)
 
-            # Link the purchase order and winning bid for traceability
-            bid.purchase_order_id = po.id
-            bid.rfq_id.winning_bid_id = bid.id
+        # 2. Validation: All bids must be in 'Submitted' state
+        not_submitted = self.bid_ids.filtered(lambda b: b.state != 'submitted')
+        if not_submitted:
+            vendor_names = ", ".join(not_submitted.mapped('vendor_id.name'))
+            raise UserError(_(
+                "Action Required: All bids must be in 'Submitted' state. "
+                "The following vendors are still in Draft or other states: %s"
+            ) % vendor_names)
+
+        # Open a wizard to select the winning bid
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Select Winning Bid'),
+            'res_model': 'rfq.select.winner.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_rfq_id': self.id},
+        }
