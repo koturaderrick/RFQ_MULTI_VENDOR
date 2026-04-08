@@ -1,36 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Form view -->
+    <!-- Form view for purchase requests -->
     <record id="view_purchase_request_form" model="ir.ui.view">
         <field name="name">purchase.request.form</field>
         <field name="model">purchase.request</field>
         <field name="arch" type="xml">
             <form string="Purchase Request">
                 <header>
+                    <!-- Button to submit the request to procurement -->
                     <button name="action_submit" string="Submit to Procurement"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"/>
+                            
+                    <!-- Button to approve the request (only for managers) -->
                     <button name="action_approve" string="Approve"
                             type="object" class="btn-success"
                             groups="purchase.group_purchase_manager"
                             invisible="state != 'submitted'"/>
+                    <!-- Button to reject the request (only for managers) -->
                     <button name="action_reject" string="Reject"
                             type="object" class="btn-danger"
                             groups="purchase.group_purchase_manager"
                             invisible="state != 'submitted'"/>
+                    <!-- Button to create an RFQ (only for managers) -->
                     <button name="action_create_rfq" string="Create RFQ"
                             type="object" class="btn-primary"
                             groups="purchase.group_purchase_manager"
                             invisible="state != 'approved'"/>
+                    <!-- Button to reset the request to draft -->
                     <button name="action_reset_draft" string="Reset to Draft"
                             type="object"
                             invisible="state not in ('rejected',)"/>
+                    <!-- Status bar to show the state of the request -->
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved,rfq_created"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <!-- Button to view RFQs related to the request -->
                         <button name="action_view_rfqs" type="object"
                                 class="oe_stat_button" icon="fa-file-text-o"
                                 invisible="rfq_count == 0">
@@ -38,20 +46,23 @@
                         </button>
                     </div>
                     <div class="oe_title">
+                        <!-- Display the name of the purchase request -->
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
                         <group>
+                            <!-- Fields for requester and dates -->
                             <field name="requested_by"/>
                             <field name="date_request"/>
                             <field name="date_required"/>
                         </group>
                     </group>
                     <group string="Justification">
+                        <!-- Field to describe the purpose of the request -->
                         <field name="description" nolabel="1"
                                placeholder="What do you need and why?"/>
                     </group>
-                    <!-- only show the vendors section once the request is submitted -->
+                    <!-- Section to select vendors (visible after submission) -->
                     <group string="Vendors to Invite"
                            groups="purchase.group_purchase_user"
                            invisible="state == 'draft'">
@@ -64,6 +75,7 @@
                     </group>
                     <notebook>
                         <page string="Requested Items">
+                            <!-- List of items requested in the purchase request -->
                             <field name="line_ids">
                                 <list editable="bottom">
                                     <field name="product_id"/>
@@ -76,27 +88,32 @@
                         </page>
                     </notebook>
                 </sheet>
+                <!-- Chatter for communication and logging -->
                 <chatter/>
             </form>
         </field>
     </record>
 
-    <!-- List view -->
+    <!-- List view for purchase requests -->
     <record id="view_purchase_request_list" model="ir.ui.view">
         <field name="name">purchase.request.list</field>
         <field name="model">purchase.request</field>
         <field name="arch" type="xml">
             <list string="Purchase Requests"
                   decoration-info="state == 'draft'"
+
                   decoration-warning="state == 'submitted'"
                   decoration-success="state in ('approved','rfq_created')"
+
                   decoration-danger="state == 'rejected'">
+                <!-- Columns to display in the list view -->
                 <field name="name"/>
                 <field name="requested_by"/>
                 <field name="date_request"/>
                 <field name="date_required"/>
                 <field name="rfq_count"/>
                 <field name="state" widget="badge"
+
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'submitted'"
                        decoration-success="state in ('approved','rfq_created')"
@@ -105,13 +122,14 @@
         </field>
     </record>
 
-    <!-- Actions -->
+    <!-- Action to view all purchase requests -->
     <record id="action_purchase_request_all" model="ir.actions.act_window">
         <field name="name">Purchase Requests</field>
         <field name="res_model">purchase.request</field>
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- Action to view only the user's purchase requests -->
     <record id="action_purchase_request_mine" model="ir.actions.act_window">
         <field name="name">My Purchase Requests</field>
         <field name="res_model">purchase.request</field>
@@ -119,18 +137,20 @@
         <field name="domain">[('requested_by', '=', uid)]</field>
     </record>
 
-    <!-- Menus -->
+    <!-- Root menu for purchase requests -->
     <menuitem id="menu_purchase_request_root"
               name="Purchase Requests"
               parent="purchase.menu_purchase_root"
               sequence="5"/>
 
+    <!-- Submenu for the user's purchase requests -->
     <menuitem id="menu_my_purchase_request"
               name="My Requests"
               parent="menu_purchase_request_root"
               action="action_purchase_request_mine"
               sequence="10"/>
 
+    <!-- Submenu for all purchase requests -->
     <menuitem id="menu_all_purchase_request"
               name="All Requests"
               parent="menu_purchase_request_root"

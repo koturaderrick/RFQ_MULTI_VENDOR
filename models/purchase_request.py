@@ -116,7 +116,7 @@ class PurchaseRequest(models.Model):
                 'date_planned': self.date_required,
             }) for l in self.line_ids]
 
-            # Create an RFQ for the vendor
+            # Create an RFQ for the vendors
             rfq = self.env['purchase.order'].create({
         # Assign first vendor as main vendor (Odoo requires this)
         'partner_id': self.vendor_ids[0].id,
