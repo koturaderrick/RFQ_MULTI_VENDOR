@@ -117,12 +117,18 @@ class PurchaseRequest(models.Model):
             }) for l in self.line_ids]
 
             # Create an RFQ for the vendor
-            self.env['purchase.order'].create({
-                'partner_id': vendor.id,
-                'purchase_request_id': self.id,
-                'origin': self.name,
-                'order_line': lines,
-            })
+            rfq = self.env['purchase.order'].create({
+        # Assign first vendor as main vendor (Odoo requires this)
+        'partner_id': self.vendor_ids[0].id,
+
+        # Assign ALL vendors using Many2many
+        'vendor_ids': [(6, 0, self.vendor_ids.ids)],
+
+        'purchase_request_id': self.id,
+        'origin': self.name,
+        'order_line': lines,
+    })
+
 
         self.state = 'rfq_created'  # Update state to RFQ created
         return self.action_view_rfqs()
